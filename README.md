@@ -18,12 +18,12 @@ You need to have access to an iVivaCloud installation and have a valid api key.
     var logger = new BIMRTInterface.BIMRTInterfaceLogger(); 
 
 	/* A sample method when subscribe  event received */
-	interface.on('subscribe', (address, addressDetails, callback) => {
+	interface.on('subscribe', (address:string, addressDetails:string, callback:function) => {
 
     });
 
     /* A sample method when setdata received */
-	interface.on('setdata', (address:string, newValue:'', callback:function) => {
+	interface.on('setdata', (address:string, newValue:string, callback:function) => {
         
     });
 
@@ -32,7 +32,7 @@ You need to have access to an iVivaCloud installation and have a valid api key.
         
     });
 
-    /* A sample method when setdata to the interface */
+    /* A sample method to the interface update interface's point */
     this.setValue = (address:string, newValue:string) => {
 
     });
