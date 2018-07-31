@@ -1,6 +1,6 @@
 const BIMRTInterface = require('./../src/bimrt-interface');
 const interface = new BIMRTInterface;
-var logger = new BIMRTInterface.BIMRTInterfaceLogger(); 
+var logger = new BIMRTInterface.BIMRTInterfaceLogger();
 const hue = require("node-hue-api"),
   HueApi = hue.HueApi,
   lightState = hue.lightState;
@@ -13,13 +13,13 @@ interface.on('ready', (parameters) => {
   parameters.hasOwnProperty('host') ? host = parameters.host : logger.error('parameter host is not configured');
   parameters.hasOwnProperty('username') ? username = parameters.username : logger.error('parameter username is not configured');
 
-  logger.info('philips hue host '+ host);
-  logger.info('philips hue username '+ username);
+  logger.info('philips hue host ' + host);
+  logger.info('philips hue username ' + username);
 
   api = new HueApi(host, username);
   api.config(function (err, config) {
-    if (err) logger.error('Not connected to philips hue bridge ,err '+ err);
-    else logger.info('connected to philips hue bridge ,config '+ JSON.stringify(config));
+    if (err) logger.error('Not connected to philips hue bridge ,err ' + err);
+    else logger.info('connected to philips hue bridge ,config ' + JSON.stringify(config));
   });
 });
 

@@ -91,7 +91,7 @@ const updateValues = (deviceId) => {
                     'address': _pa
                 }).set('last_value', _value).value();
                 interface.updateValue(_pa, _value, (err, data) => {
-                    if(err) console.log('err ' , err);
+                    if (err) console.log('err ', err);
                 }); // pass the latest value to interface
             }
         }); // point names in to list

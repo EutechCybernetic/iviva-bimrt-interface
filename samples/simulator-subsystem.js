@@ -3,7 +3,7 @@ const HashMap = require('hashmap');
 var pointList = new HashMap();
 const BIMRTInterface = require('./../src/bimrt-interface');
 const interface = new BIMRTInterface();
-var logger = new BIMRTInterface.BIMRTInterfaceLogger(); 
+var logger = new BIMRTInterface.BIMRTInterfaceLogger();
 
 var addressList = [];
 const self = this;
