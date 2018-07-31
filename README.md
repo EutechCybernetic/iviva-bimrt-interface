@@ -9,11 +9,11 @@ You need to have access to an iVivaCloud installation and have a valid api key.
 
 ### Installation
 ```sh
-    npm install iviva-bimrt-interface --save
+    npm install iviva-bimrt-interface-node
 ```
 
 ## Usage
-	const BIMRTInterface = require('iviva-bimrt-interface');
+	const BIMRTInterface = require('iviva-bimrt-interface-node');
     const interface = new BIMRTInterface();
     var logger = new BIMRTInterface.BIMRTInterfaceLogger(); 
 
