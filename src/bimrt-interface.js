@@ -2,6 +2,7 @@ const util = require("util"),
     EventEmitter = require('events'),
     config = require("config"),
     iviva = require('./ivivacloud');
+    BIMRTInterfaceWebHost = require('./bimrt-interface-webhost');
 
 function BIMRTInterfaceLogger() {
     /*{ error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5 } */
@@ -51,7 +52,7 @@ function BIMRTInterface() {
     EventEmitter.call(this);
 
     var logger = new BIMRTInterfaceLogger();
-
+    
     const host = config.get("host"),
         apiKey = config.get("apiKey"),
         whiteIPs = config.get("whiteIPs"),
@@ -444,6 +445,14 @@ function BIMRTInterface() {
         let data = _.filter(addressList, (a) => {
             return a.address === address && a.read_write_state != 'Write-only';
         });
+        web.updateValue(address, value, (err, data) => {
+            if (data) {
+                logger.verbose('web.updateValue ,data: ', data);
+            }
+            if (err) {
+                logger.verbose('web.updateValue ,err: ', err);
+            }
+        });
         updateValueBulk(data, value, callback);
     };
 
@@ -462,6 +471,20 @@ function BIMRTInterface() {
             }
         });
     };
+
+    const web = new BIMRTInterfaceWebHost();
+    web.on('Get.AddressList', (callback) => {
+        callback(null, addressList);
+    });
+    
+    web.on('Get.PointValue', (address, callback) => {
+        callback(null, _.find(addressList,{address:address}).last_value);
+    });
+    
+    web.on('Set.PointValue', (address, newValue, callback) => {
+        updateValue(address, newValue);
+        callback(null, 'success');
+    });
 }
 util.inherits(BIMRTInterface, EventEmitter);
 module.exports = BIMRTInterface;

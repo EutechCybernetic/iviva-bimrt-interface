@@ -18,7 +18,6 @@ interface.on('subscribe', (address, addressDetails, callback) => {
 			dp.init();
 			dp.on('DevicePoint.OnValueChange', function (p) {
 				interface.updateValue(p._address, p.pointValue, (err, data) => {});
-				web.updateValue(p._address, p.pointValue, (err, data) => {});
 			});
 			let item = new devicePoint.ItemInfo(dp, null);
 			pointList.set(address, item);
@@ -49,29 +48,4 @@ interface.on('demandpoll', (demandPoints) => {
 this.setValue = (address, newValue) => {
 	let itemX = pointList.get(address);
 	itemX._DevicePoint.setData(newValue, Date.now);
-	web.updateValue(address, newValue, (err, data) => {
-		if (data) {
-			logger.verbose('web.updateValue ,data: ', data);
-		}
-		if (err) {
-			logger.verbose('web.updateValue ,err: ', err);
-		}
-	});
 }
-
-const BIMRTInterfaceWebHost = require('./../src/bimrt-interface-webhost');
-const web = new BIMRTInterfaceWebHost();
-
-web.on('Get.AddressList', (callback) => {
-	callback(null, addressList);
-});
-
-web.on('Get.PointValue', (address, callback) => {
-	let itemX = pointList.get(address);
-	callback(null, itemX._DevicePoint.pointValue);
-});
-
-web.on('Set.PointValue', (address, newValue, callback) => {
-	self.setValue(address, newValue);
-	callback(null, 'success');
-});
