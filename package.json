@@ -1,6 +1,6 @@
 {
-  "name": "iviva-bimrt-interface",
-  "version": "1.1.0",
+  "name": "iviva-bimrt-interface-node",
+  "version": "1.1.1",
   "description": "BIM real time communication interface with iviva",
   "main": "src/bimrt-interface.js",
   "scripts": {

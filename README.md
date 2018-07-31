@@ -1,4 +1,4 @@
-# ivivacloud-node
+# iviva-bimrt-interface-node
 A node.js helper library for iViva BIMRT Interface
 
 # Getting Started
