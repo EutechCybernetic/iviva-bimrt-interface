@@ -1,0 +1,78 @@
+extends layout.pug
+block scripts
+    script.
+        var source = new EventSource('/update-stream');
+            console.log('new EventSource');
+            source.addEventListener('message', function(e) {
+                let X = JSON.parse(e.data);
+                console.log(e.data);
+                if(X.equipment_id === '#{equipment_id}')
+                {
+                    console.log(X.point_name + ':' +X.point_value);
+                    $('#'+X.point_name).html(X.point_value);
+                    $('#'+X.point_name).val(X.point_value) ;
+                    if (typeof eventStreamReceived !== "undefined")
+                        eventStreamReceived(X);
+                }
+        }, false);
+                
+        updateValues();
+        function updateValues()
+        {
+            var dataX = '#{JSON.stringify(data)}'.replace(/&quot;/g,'"')
+
+            console.log('X:'+dataX);
+            
+            var X = JSON.parse(dataX);
+
+            for(let i=0;i < X.length;i++)
+            {
+                let point = X[i];
+                $.ajax({
+                    url: "/getValue",
+                    data: {equipment_id:'#{equipment_id}',point_name:point.point_name},
+                    type:'GET',
+                    success: function(res) {
+                        $('#'+point.point_name).html(res);
+                        $('#'+point.point_name).val(res);
+                    },
+                    error: console.error
+                    });
+            }
+        }
+
+        function inputValueChanged(value,id){
+            pointSetValue(id,value);
+        }
+
+        function pointSetValue(pointName,value){
+            $.post({
+                url: "/setValue",
+                data: {equipment_id: '#{equipment_id}',point_name:pointName,new_value:value},
+                success: function(res) {
+                    console.log('pointSetValue:'+res);
+                },
+                error: console.error
+            });
+        }
+block content
+    div.container
+        br
+        h1(class='text-muted') Equipment : #{equipment_id}
+        br
+        div.row
+            div.col-auto
+                block equipment_template_content
+            div.col-auto
+                table.table
+                    tr
+                        th Point Name
+                        th Value
+                    each val in data.length ? data : ['There are no points']
+                        tr
+                            td= val.point_name
+                            td
+                                if val.read_write_state
+                                    span(id= val.point_name)= val.point_value
+                                else
+                                    input(type="text", name="", Value= val.point_value ,id= val.point_name , onchange="inputValueChanged(this.value,this.id)")

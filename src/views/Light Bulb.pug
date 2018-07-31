@@ -1,0 +1,35 @@
+extends equipment_layout.pug
+block equipment_template_scripts
+    script.
+        function switchON(){
+            $('#'+'#{equipment_id}').attr("src",'img/yellow_bulp.png').attr("data-value",'true');
+        }
+        function switchOFF(){
+            $('#'+'#{equipment_id}').attr("src",'img/grey_bulp.png').attr("data-value",'false');
+        }
+        $.ajax({
+            url: "/getValue",
+            data: {equipment_id:'#{equipment_id}',point_name:'OpStatus'},
+            type:'GET',
+            success: function(res) {
+                res==='true' ? switchON() : switchOFF();
+                console.log(res);
+            },
+            error: console.error
+        });
+
+        function eventStreamReceived(X){
+            if(X.equipment_id === '#{equipment_id}' && X.point_name === 'OpStatus') 
+                X.point_value.toString() === 'false' ? switchOFF() : switchON();
+        }
+        
+        function switchOnOffLight(pointName){
+            let v = $('#'+'#{equipment_id}').attr("data-value")==='false' ? 'true' : 'false' ;
+            pointSetValue('OpStatus',v);
+            //updateValues();
+        }
+block equipment_template_content
+    table
+        tr
+            td
+                img(src="img/grey_bulp.png" ,onclick='switchOnOffLight("OpStatus")' ,id= equipment_id ,data-value='false')

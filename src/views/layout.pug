@@ -1,0 +1,26 @@
+html
+    head
+        title iViva
+        link(rel="stylesheet" href='/css/bootstrap.css')
+        link(rel="stylesheet" href='/css/style.css')
+        script(src='js/jquery-3.3.1.min.js')
+        link(rel="icon" href="/img/favicon.ico" sizes="16x16")
+        block scripts
+        block equipment_template_scripts
+    body
+        br
+        div.container
+            div.row
+                div.col-sm-auto
+                    div.logo(onclick="window.location='/';")
+                div.col-sm-auto
+                    h1(class="display-7") Device User Interface
+                div.float-right
+                    a(href="/configurations") Configurations
+        br  
+        div.container
+            block  content
+        br
+        footer.container
+            p ©  Eutech Cybernetics 2018
+        

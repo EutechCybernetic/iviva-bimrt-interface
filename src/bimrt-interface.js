@@ -198,13 +198,13 @@ function BIMRTInterface() {
                 account.executeService('BIMRTConfig.Equipment:DataRequestResponse', dataResponseX, (err, data) => {
                     let _preLogMessage = 'account.executeService ,BIMRTConfig.Equipment:DataRequestResponse ,';
                     if (err) {
-                        logger.error(_preLogMessage + 'err: ' + err);
+                        logger.error(_preLogMessage +'err: ' + err);
                     }
                     if (data) {
                         let _data = JSON.parse(data)[0];
                         _data.Result === 'Success' ? logger.info(_preLogMessage + 'data: ' + data) : logger.error(_preLogMessage + 'data: ' + data);
                     }
-
+                    
                 });
             }
         });

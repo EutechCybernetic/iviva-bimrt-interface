@@ -1,0 +1,12 @@
+extends layout.pug
+block content
+    br
+    div.container
+        small
+            h4 Device List
+            ul
+                each val in data.length ? data : ['There are no devices linked yet']
+                    br
+                    li
+                        a(href="/equipment?equipment_id="+val class="btn btn-primary btn-md active" role="button")= val
+    

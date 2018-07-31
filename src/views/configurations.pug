@@ -1,0 +1,39 @@
+extends layout.pug
+block scripts
+    script.
+        function updateConfig(idX,valueX)
+        {
+            console.log('id='+idX);
+            console.log('value='+valueX);
+            $.ajax({
+                url: "/setConfiguration",
+                data: {'id':idX , value:valueX},
+                type:'POST',
+                success: function(res) {
+                    //$('#'+point.point_name).html(res);
+                    //$('#'+point.point_name).val(res);
+                },
+                error: console.error
+            });
+        }
+block content
+    br
+    br
+    div.container
+        div.row
+            div.col-2 Host
+            div.col-4
+                input(type="text" id="host" Value= host onchange="updateConfig(this.id,this.value)" class="form-control input-md")
+            div.col-7
+        br
+        div.row
+            div.col-2 api Key
+            div.col-4
+                input(type="text" id="apiKey" Value= apiKey onchange="updateConfig(this.id,this.value)" class="form-control input-md")
+            div.col-7
+        br
+        div.row
+            div.col-2 Interface ID
+            div.col-4
+                input(type="text" id="InterfaceID" Value= InterfaceID onchange="updateConfig(this.id,this.value)" class="form-control input-md")
+            div.col-7

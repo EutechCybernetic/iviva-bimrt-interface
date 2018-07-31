@@ -1,0 +1,7 @@
+{
+    "InterfaceID": "BIMDynamicSimulatorSubsystemInterface",
+    "host": "http://saas2.iviva.com/",
+    "apiKey": "SC:saas2:e82eeabd67de3628",
+    "whiteIPs": [
+    ]
+}
