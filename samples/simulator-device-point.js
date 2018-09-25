@@ -1,14 +1,13 @@
-const EventEmitter = require('events')
-const util = require('util')
+const EventEmitter = require('events');
+const util = require('util');
+const BIMRTInterface = require('./../src/bimrt-interface');
+var logger = new BIMRTInterface.BIMRTInterfaceLogger();
 
 function DevicePoint(address) {
     this._address = address;
     EventEmitter.call(this);
-    var that = this;
 
-    var deviceType = "";
     this.pointName = "";
-    var pointType = "";
     this.pointValue = "";
     var NextValueSendingTime = new Date();
     NextValueSendingTime.setDate(NextValueSendingTime.getDate() + (-1));
@@ -60,12 +59,10 @@ function DevicePoint(address) {
             addValue = val;
         } else if (typeFlag.toUpperCase() == "BINARY".toUpperCase()) {
             v = Math.random() * (1 - 0) + 0;
-            //_log.writeEntry(3,'Math.random() ' + v);
             this.setValue(v.toString(), Date.now());
         } else {
             v = Math.random() * (vMax - vMin) + vMin;
             v = v.toFixed(simRoundOff);
-            //_log.writeEntry(3,'Math.random() ' + v);
 
             rand = Math.random() * 2.0 - 1.0;
             val = simStartValue + (simStartValue * rand * simPer);
@@ -81,7 +78,6 @@ function DevicePoint(address) {
     }
 
     this.startStopSimulation = function (enable) {
-        //interface.log(2,'timerStart : ' + this._address);
         if (enable) setInterval(() => this.simulateTimer(), simInterval * 1000);
     }
 
@@ -100,19 +96,15 @@ function DevicePoint(address) {
     }
 
     this.fireCOV = function (lastValue) {
-        console.log("FireCOV : " + this._address);
+        logger.info("FireCOV : " + this._address);
         if (simEnabled) {
-            //_log.writeEntry(3,"FireCOV ,simEnabled: " + this._address);
-            //this.startStopSimulation(true);
-            //set onDemand required for simulated values
             nowX = new Date();
             nowX = nowX.setMilliseconds(nowX.getMilliseconds() + (simInterval * 2));
-            //NextValueSendingTime = DateTime.Now.AddMilliseconds(this.tmrSimulate.Interval * 2);
+
             NextValueSendingTime = nowX;
         }
         //send 
         if (this.pointValue != lastValue || lastValue == "") {
-            //_log.writeEntry(3,"FireCOV : simEnabled = false" + this._address + ' this.pointValue, : ' + this.pointValue);
             this.emit('DevicePoint.OnValueChange', this);
         }
     }
@@ -125,12 +117,10 @@ function DevicePoint(address) {
         let param = this._address.split(',');
         if (param.length >= 5) {
             deviceType = param[0];
-            //this.pointName = param[1];
-            if (param[2] == "BV") pointType = "Binary Value";
-            if (param[2] == "AV") pointType = "Analog Value";
-            if (param[2] == "TV") pointType = "Text Value";
+            // if (param[2] == "BV") pointType = "Binary Value";
+            // if (param[2] == "AV") pointType = "Analog Value";
+            // if (param[2] == "TV") pointType = "Text Value";
             this.pointValue = param[3];
-            //_log.writeEntry(3,'pointValue ' + this.pointValue)
             if (param.length >= 5 && param[4].toUpperCase() == "Y".toUpperCase()) {
                 if (param[5] == "") return;
                 //Simulation enabled
@@ -139,14 +129,12 @@ function DevicePoint(address) {
                     simType = simParams[0];
                     if (simType == "%") {
                         simEnabled = true;
-                        //_log.writeEntry(3,"parseAddress ,simEnabled " + simEnabled)
                         simPer = parseFloat(simParams[1]) / 100;
                         simRoundOff = parseInt(simParams[2]);
                         if (simRoundOff > 15) simRoundOff = 15;
                         simStartValue = parseFloat(this.pointValue);
                         if (simParams.length == 4) {
                             simInterval = parseInt(simParams[3]);
-                            //tmrSimulate.Interval = 1000 * parseInt(simParams[3], 5);
                         }
                     }
                 }
@@ -189,7 +177,7 @@ function DevicePoint(address) {
                 typeFlag = "BINARY";
                 tmrSimulate.Interval = 1000 * parseInt(simInt, 5);
             }
-        } else console.log(1, "Address format should be at least : AHU-01,Return Air Temp,AV,21.2 (for random values:AHU-01,Return Air Temp,AV,21.2,Y,%:30:5)");
+        } else logger.error(1, "Address format should be at least : AHU-01,Return Air Temp,AV,21.2 (for random values:AHU-01,Return Air Temp,AV,21.2,Y,%:30:5)");
     }
 }
 

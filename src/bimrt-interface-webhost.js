@@ -111,9 +111,11 @@ function BIMRTInterfaceWebHost() {
         let a = _.find(addressList, {
             address: address
         });
-        if (a !== undefined)
+        if (a !== undefined){
             self.emit('Update.UI', a.equipment_id, a.point_name, newValue);
-        callback(null, 'success');
+        }
+            
+        typeof callback == "function" && callback(null, 'success');
     }
 
     app.get('/update-stream', (req, res) => {

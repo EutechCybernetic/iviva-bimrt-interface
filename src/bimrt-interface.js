@@ -1,8 +1,8 @@
 const util = require("util"),
     EventEmitter = require('events'),
     config = require("config"),
-    iviva = require('./ivivacloud');
-BIMRTInterfaceWebHost = require('./bimrt-interface-webhost');
+    iviva = require('./ivivacloud'),
+    BIMRTInterfaceWebHost = require('./bimrt-interface-webhost');
 
 function BIMRTInterfaceLogger() {
     /*{ error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5 } */
@@ -137,6 +137,29 @@ function BIMRTInterface() {
         });
     }, 600000); // 10 min
 
+    /** download equipment points which are marked as to notify when point value change */
+    const downloadPointValueChangeNotifyPoints = () => {
+        account.executeService('BIMRTConfig.EquipmentPoint:GetPointValueChangeNotifyPoints', {
+            'InterfaceID': interfaceID
+        }, (err, data) => {
+            if (err) {
+                logger.error('downloadPointValueChangeNotifyPoints ,err:', err);
+            }
+            if (data) {
+                json_data = JSON.parse(data);
+                for (let i = 0; i < json_data.length; i++) {
+                    const d = json_data[i];
+                    subscribe(d.EquipmentKey, d.EquipmentID, d.PointAddress, d.EquipmentPointKey, d.PointName, d.ReadWriteState, d.EquipmentTemplateID);
+                }
+            }
+        });
+    };
+
+    downloadPointValueChangeNotifyPoints();
+    setInterval(() => {
+        downloadPointValueChangeNotifyPoints();
+    }, 1000 * 60 * 5); // every 5 minutes
+    /* end of download points function */
     const processOnDemandPointList = setInterval(() => {
         let demandPointsX2 = demandPointsX;
         demandPointsX = [];
@@ -286,7 +309,6 @@ function BIMRTInterface() {
                     }).data_ready = false;
                     demandPointsX.push(equipmentPointKeyX);
                 }
-
             }
         }, (err) => {
             if (err) {
@@ -307,11 +329,29 @@ function BIMRTInterface() {
     const updateValueBulk = (data, value, callback) => {
         logger.verbose('bimrt-interface ,updateValueBulk ,data: ' + JSON.stringify(data) + ' ,value: ' + value);
         data.forEach((d) => {
+            let address = _.find(addressList, {
+                address_key: d.address_key
+            });
+            if (address.last_value !== null && value !== address.last_value) {
+                account.executeService('System.FireEvent', {
+                    'EventID': 'BIMRTConfig.PointValueChanged',
+                    'EquipmentKey': address.equipment_key,
+                    'PointName': address.point_name,
+                    'Value': value
+                }, (err, data) => {
+                    if (err) {
+                        logger.error('System.FireEvent , err:', err);
+                    }
+                    if (data) {
+                        logger.verbose('System.FireEvent ,data :', data);
+                    }
+                });
+            }
             _.chain(addressList).find({
                 address_key: d.address_key
             }).set('data_ready', true).set('last_value', value).set('last_value_dateTime', Date.now()).value();
         });
-        callback(null, 'success');
+        typeof callback === 'function' && callback(null, 'success');
     }
 
     const handleSetDataRequest = async (equipmentKey, equipmentID, equipmentPointKey, pointAddress, pointName, readWriteState, argument, modelName, modelAction, cargo, responseRequired) => {
@@ -386,7 +426,7 @@ function BIMRTInterface() {
                 equipment_key: equipmentKey,
                 data_ready: false,
                 invalid_point_address: true,
-                last_value: '',
+                last_value: null,
                 last_value_dateTime: null
             });
 
@@ -422,7 +462,7 @@ function BIMRTInterface() {
                             last_value: ''
                         }) : _.merge(infoX, {
                             data_ready: false,
-                            last_value: ''
+                            last_value: null
                         });
                     }
                     resolve(infoX);
@@ -456,22 +496,6 @@ function BIMRTInterface() {
         updateValueBulk(data, value, callback);
     };
 
-    this.updateEquipmentStatus = (equipmentKey, status, callback) => {
-        logger.verbose('bimrt-interface ,updateEquipmentStatus ,equipmentKey: ' + equipmentKey + ' ,status: ' + status);
-        account.executeService('BIMRTConfig.Equipment:UpdateStatus', {
-            'EquipmentKey': equipmentKey,
-            'Status': status
-        }, (err, data) => {
-            if (err) {
-                logger.error('bimrt-interface ,updateEquipmentStatus ,err: ' + JSON.stringify(err));
-            }
-            if (data) {
-                logger.info('bimrt-interface ,updateEquipmentStatus ,data:' + JSON.stringify(data));
-                callback(null, data)
-            }
-        });
-    };
-
     const web = new BIMRTInterfaceWebHost();
     web.on('Get.AddressList', (callback) => {
         callback(null, addressList);
@@ -484,7 +508,7 @@ function BIMRTInterface() {
     });
 
     web.on('Set.PointValue', (address, newValue, callback) => {
-        updateValue(address, newValue);
+        this.updateValue(address, newValue);
         callback(null, 'success');
     });
 }
