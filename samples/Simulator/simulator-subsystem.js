@@ -9,6 +9,7 @@ const config = require("./iviva-settings.json")
     //     whiteIPs = config.whiteIPs,
 	//     interfaceID = config.InterfaceID;
 	
+//const BIMRTInterface = require('./ivivacloud-bimrtinterface/bimrt-interface');
 const BIMRTInterface = require('ivivacloud-bimrtinterface');
 const interface = new BIMRTInterface(config.InterfaceID,
 	config.host,
