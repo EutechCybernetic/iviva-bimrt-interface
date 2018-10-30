@@ -1,8 +1,8 @@
 const util = require("util"),
     EventEmitter = require('events'),
-    config = require("config"),
-    iviva = require('./ivivacloud'),
-    BIMRTInterfaceWebHost = require('./bimrt-interface-webhost');
+    //config = require("./iviva-settings.json"),
+    iviva = require('./ivivacloud');
+const BIMRTInterfaceWebHost = require('./bimrt-interface-webserver');
 
 function BIMRTInterfaceLogger() {
     /*{ error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5 } */
@@ -47,16 +47,13 @@ function BIMRTInterfaceLogger() {
     return logger;
 }
 
-function BIMRTInterface() {
+function BIMRTInterface(interfaceID, host,apiKey,whiteIPs) {
     const self = this;
     EventEmitter.call(this);
 
     var logger = new BIMRTInterfaceLogger();
 
-    const host = config.get("host"),
-        apiKey = config.get("apiKey"),
-        whiteIPs = config.get("whiteIPs"),
-        interfaceID = config.get("InterfaceID");
+    
     logger.info('Interface ' + interfaceID + ' started...');
     const account = new iviva.Account(host, apiKey);
 
@@ -139,6 +136,7 @@ function BIMRTInterface() {
 
     /** download equipment points which are marked as to notify when point value change */
     const downloadPointValueChangeNotifyPoints = () => {
+        logger.info('----downloadPointValueChangeNotifyPoints---');
         account.executeService('BIMRTConfig.EquipmentPoint:GetPointValueChangeNotifyPoints', {
             'InterfaceID': interfaceID
         }, (err, data) => {
@@ -149,7 +147,17 @@ function BIMRTInterface() {
                 json_data = JSON.parse(data);
                 for (let i = 0; i < json_data.length; i++) {
                     const d = json_data[i];
-                    subscribe(d.EquipmentKey, d.EquipmentID, d.PointAddress, d.EquipmentPointKey, d.PointName, d.ReadWriteState, d.EquipmentTemplateID , d.PointValueChangeNotify);
+                    if(d.PointValueChangeNotify==='1'){
+                        subscribe(d.EquipmentKey, d.EquipmentID, d.PointAddress, d.EquipmentPointKey, d.PointName, d.ReadWriteState, d.EquipmentTemplateID , d.PointValueChangeNotify);        
+                    }
+                        
+                    if (_.filter(addressList, {
+                        address_key: d.EquipmentPointKey
+                    }).length > 0) {
+                        _.find(addressList, {
+                            address_key: d.EquipmentPointKey
+                        }).point_value_change_notify = d.PointValueChangeNotify;
+                    }
                 }
             }
         });
@@ -158,7 +166,7 @@ function BIMRTInterface() {
     downloadPointValueChangeNotifyPoints();
     setInterval(() => {
         downloadPointValueChangeNotifyPoints();
-    }, 1000 * 60 * 5); // every 5 minutes
+    }, 1000 * 60 * 1); // every 5 minutes
     /* end of download points function */
     const processOnDemandPointList = setInterval(() => {
         let demandPointsX2 = demandPointsX;
@@ -275,14 +283,17 @@ function BIMRTInterface() {
 
             let infoX;
 
+            // if point exists in the list
             if (_.some(addressList, {
                     address_key: equipmentPointKeyX
                 })) {
                 infoX = _.find(addressList, {
                     address_key: equipmentPointKeyX
                 });
+                //updates its value
+                infoX.point_value_change_notify = pointValueChangeNotify;
 
-                if (infoX.read_write_state !== readWriteStateX) {
+                if (infoX.read_write_state !== readWriteStateX) { // updates value plus some additional stuff
                     _.merge(infoX, {
                         read_write_state: readWriteStateX
                     })
@@ -293,10 +304,10 @@ function BIMRTInterface() {
                     });
                 }
 
-                if (infoX.address !== pointAddressX) {
+                if (infoX.address !== pointAddressX) { //exist but address is different , so subscribe
                     infoX = await subscribe(equipmentKey, equipmentID, pointAddressX, equipmentPointKeyX, pointNameX, readWriteStateX, equipmentTemplateID,pointValueChangeNotify);
                 }
-            } else {
+            } else { // not exists, so subscribe
                 infoX = await subscribe(equipmentKey, equipmentID, pointAddressX, equipmentPointKeyX, pointNameX, readWriteStateX, equipmentTemplateID,pointValueChangeNotify);
             }
 
@@ -332,18 +343,16 @@ function BIMRTInterface() {
             let address = _.find(addressList, {
                 address_key: d.address_key
             });
-            if (address.last_value !== null && value !== address.last_value && address.point_value_change_notify ==='1') {
-                account.executeService('System.FireEvent', {
-                    'EventID': 'BIMRTConfig.PointValueChanged',
-                    'EquipmentKey': address.equipment_key,
-                    'PointName': address.point_name,
-                    'Value': value
+            if (address.last_value_dateTime !==null && value !== address.last_value && address.point_value_change_notify ==='1') {
+                account.executeService('BIMRTConfig.EquipmentPoint:PointValueChanged', {
+                    'address_key': address.address_key,
+                    'value': value
                 }, (err, data) => {
                     if (err) {
-                        logger.error('System.FireEvent , err:', err);
+                        logger.error('BIMRTConfig.EquipmentPoint:PointValueChanged , err:', err);
                     }
                     if (data) {
-                        logger.verbose('System.FireEvent ,data :', data);
+                        logger.verbose('BIMRTConfig.EquipmentPoint:PointValueChanged ,data :', data);
                     }
                 });
             }
@@ -426,7 +435,7 @@ function BIMRTInterface() {
                 equipment_key: equipmentKey,
                 data_ready: false,
                 invalid_point_address: true,
-                last_value: null,
+                last_value: '',
                 last_value_dateTime: null,
                 point_value_change_notify :pointValueChangeNotify
             });
@@ -451,7 +460,8 @@ function BIMRTInterface() {
                         logger.error('subscribe failed ,address: ' + address + ' ,res: ' + err);
                         _.merge(infoX, {
                             data_ready: true,
-                            invalid_point_address: true
+                            invalid_point_address: true,
+                            last_value: ''
                         });
                     } else {
                         logger.info('subscribe successful ,address: ' + address + ' ,res: ' + data);
@@ -463,7 +473,7 @@ function BIMRTInterface() {
                             last_value: ''
                         }) : _.merge(infoX, {
                             data_ready: false,
-                            last_value: null
+                            last_value: ""
                         });
                     }
                     resolve(infoX);

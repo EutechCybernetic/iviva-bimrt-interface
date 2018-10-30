@@ -1,33 +1,17 @@
 {
-  "name": "iviva-bimrt-interface-node",
-  "version": "1.1.4",
-  "description": "BIM real time communication interface with iviva",
-  "main": "src/bimrt-interface.js",
+  "name": "ivivacloud-bimrtinterface",
+  "version": "1.1.0",
+  "description": "",
+  "main": "bimrt-interface.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/EutechCybernetic/iviva-bimrt-interface.git"
-  },
   "author": "selva",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/EutechCybernetic/iviva-bimrt-interface/issues"
-  },
-  "homepage": "https://github.com/EutechCybernetic/iviva-bimrt-interface#readme",
   "dependencies": {
-    "config": "^2.0.0",
-    "express": "^4.16.3",
-    "hashmap": "^2.3.0",
+    "express": "^4.16.4",
     "pug": "^2.0.3",
-    "signalr-client": "0.0.17",
-    "winston": "^3.0.0"
-  },
-  "keywords": [
-    "iviva",
-    "bimrt",
-    "bimrtinterface",
-    "eutech"
-  ]
+    "signalr-client": "0.0.19",
+    "winston": "^3.1.0"
+  }
 }

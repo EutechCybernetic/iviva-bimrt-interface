@@ -1,7 +1,6 @@
 const express = require('express'),
     bodyParser = require("body-parser"),
     path = require('path'),
-    config = require("config"),
     pug = require('pug'),
     _ = require('lodash'),
     EventEmitter = require('events'),
@@ -52,9 +51,9 @@ function BIMRTInterfaceWebHost() {
 
     app.get('/configurations', function (req, res) {
         let data = {
-            host: config.get("host"),
-            apiKey: config.get("apiKey"),
-            InterfaceID: config.get("InterfaceID")
+            host: config.host,
+            apiKey: config.apiKey,
+            InterfaceID: config.InterfaceID
         };
         res.render('configurations', data);
     });

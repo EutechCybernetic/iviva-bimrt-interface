@@ -1,6 +1,6 @@
 const EventEmitter = require('events');
 const util = require('util');
-const BIMRTInterface = require('./../src/bimrt-interface');
+const BIMRTInterface = require('ivivacloud-bimrtinterface');
 var logger = new BIMRTInterface.BIMRTInterfaceLogger();
 
 function DevicePoint(address) {

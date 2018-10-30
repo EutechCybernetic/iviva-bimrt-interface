@@ -1,8 +1,20 @@
 const devicePoint = require('./simulator-device-point');
 const HashMap = require('hashmap');
 var pointList = new HashMap();
-const BIMRTInterface = require('./../src/bimrt-interface');
-const interface = new BIMRTInterface();
+
+const config = require("./iviva-settings.json")
+
+// const host = config.host,
+    //     apiKey = config.apiKey,
+    //     whiteIPs = config.whiteIPs,
+	//     interfaceID = config.InterfaceID;
+	
+const BIMRTInterface = require('ivivacloud-bimrtinterface');
+const interface = new BIMRTInterface(config.InterfaceID,
+	config.host,
+         config.apiKey,
+         config.whiteIPs,
+	     );
 var logger = new BIMRTInterface.BIMRTInterfaceLogger();
 
 var addressList = [];
