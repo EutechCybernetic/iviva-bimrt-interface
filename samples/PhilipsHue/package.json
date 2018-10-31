@@ -1,0 +1,16 @@
+{
+  "name": "philipshue",
+  "version": "1.0.0",
+  "description": "",
+  "main": "philipshue-subsystem.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node philipshue-subsystem.js"
+  },
+  "author": "selva",
+  "license": "ISC",
+  "dependencies": {
+    "ivivacloud-bimrtinterface": "^1.1.0",
+    "node-hue-api": "^2.4.4"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "iviva-ibms",
+  "version": "1.0.0",
+  "description": "",
+  "main": "iviva-ibms-subsystem.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node iviva-ibms-subsystem.js"
+  },
+  "author": "selva",
+  "license": "ISC",
+  "dependencies": {
+    "hashmap": "^2.3.0",
+    "ivivacloud-bimrtinterface": "^1.1.0",
+    "ivivacloud-node": "0.0.6"
+  }
+}

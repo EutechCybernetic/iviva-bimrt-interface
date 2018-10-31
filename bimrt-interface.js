@@ -53,7 +53,6 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs) {
 
     var logger = new BIMRTInterfaceLogger();
 
-    
     logger.info('Interface ' + interfaceID + ' started...');
     const account = new iviva.Account(host, apiKey);
 
@@ -150,6 +149,14 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs) {
                     if(d.PointValueChangeNotify==='1'){
                         subscribe(d.EquipmentKey, d.EquipmentID, d.PointAddress, d.EquipmentPointKey, d.PointName, d.ReadWriteState, d.EquipmentTemplateID , d.PointValueChangeNotify);        
                     }
+
+                    if(d.PointValueChangeNotify==='0'){
+                        if(_.some(addressList,{address_key:d.address_key})){
+                            _.chain(addressList).find({
+                                address_key: d.address_key
+                            }).set('point_value_change_notify', d.PointValueChangeNotify).value();
+                        }
+                    }
                         
                     if (_.filter(addressList, {
                         address_key: d.EquipmentPointKey
@@ -166,7 +173,7 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs) {
     downloadPointValueChangeNotifyPoints();
     setInterval(() => {
         downloadPointValueChangeNotifyPoints();
-    }, 1000 * 60 * 1); // every 5 minutes
+    }, 1000 * 60 * 1); // every minute - just to make fast.
     /* end of download points function */
     const processOnDemandPointList = setInterval(() => {
         let demandPointsX2 = demandPointsX;
@@ -291,7 +298,7 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs) {
                     address_key: equipmentPointKeyX
                 });
                 //updates its value
-                infoX.point_value_change_notify = pointValueChangeNotify;
+                infoX.point_value_change_notify = pointValueChangeNotify.toString();
 
                 if (infoX.read_write_state !== readWriteStateX) { // updates value plus some additional stuff
                     _.merge(infoX, {
@@ -357,8 +364,9 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs) {
                 });
             }
             _.chain(addressList).find({
-                address_key: d.address_key
+                address_key: address.address_key
             }).set('data_ready', true).set('last_value', value).set('last_value_dateTime', Date.now()).value();
+
         });
         typeof callback === 'function' && callback(null, 'success');
     }
@@ -379,9 +387,9 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs) {
         if (argument !== '' && infoX.invalid_point_address === false) {
             self.emit('setdata', infoX.address, argument, (err, data) => {
                 if (err === null) {
-                    updateValueBulk(_.filter(addressList, {
-                        address: infoX.address
-                    }), argument, (err, data) => {});
+                     updateValueBulk(_.filter(addressList, {
+                         address: infoX.address
+                     }), argument, (err, data) => {});
                 }
             });
         }
@@ -398,13 +406,13 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs) {
                     ReadWriteState: val.read_write_state
                 };
             });
-            handleDataRequest2(pointListX, infoX.equipment_key, infoX.equipment_id, cargo, modelName, modelAction);
+            handleDataRequest2(pointListX, infoX.equipment_key, infoX.equipment_id, cargo, modelName, modelAction , equipmentTemplateID,pointValueChangeNotify);
         }
     };
 
-    const handleDataRequest2 = (data, assetKey, asset, cargo, modelName, modelAction) => {
+    const handleDataRequest2 = (data, assetKey, asset, cargo, modelName, modelAction , equipmentTemplateID,pointValueChangeNotify) => {
         setTimeout(() => {
-            handleDataRequest(data, '0', assetKey, asset, cargo, modelName, modelAction);
+            handleDataRequest(data, '0', assetKey, asset, cargo, modelName, modelAction ,equipmentTemplateID,pointValueChangeNotify);
         }, responseDelay);
     };
 
@@ -420,25 +428,40 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs) {
                     address_key: addressKey
                 };
                 addressList.push(infoX);
+
+                _.merge(infoX, {
+                    address: address,
+                    read_write_state: readWriteState,
+                    equipment_template_id: equipmentTemplateID,
+                    equipment_id: equipmentID,
+                    point_name: pointName,
+                    equipment_key: equipmentKey,
+                    data_ready: false,
+                    invalid_point_address: true,
+                    last_value: '',
+                    last_value_dateTime: null,
+                    point_value_change_notify :pointValueChangeNotify
+                });
+
             } else {
                 infoX = _.find(addressList, {
                     address_key: addressKey
                 });
-            }
 
-            _.merge(infoX, {
-                address: address,
-                read_write_state: readWriteState,
-                equipment_template_id: equipmentTemplateID,
-                equipment_id: equipmentID,
-                point_name: pointName,
-                equipment_key: equipmentKey,
-                data_ready: false,
-                invalid_point_address: true,
-                last_value: '',
-                last_value_dateTime: null,
-                point_value_change_notify :pointValueChangeNotify
-            });
+                _.merge(infoX, {
+                    address: address,
+                    read_write_state: readWriteState,
+                    equipment_template_id: equipmentTemplateID,
+                    equipment_id: equipmentID,
+                    point_name: pointName,
+                    equipment_key: equipmentKey,
+                    data_ready: false,
+                    invalid_point_address: true,
+                    //last_value: '', -- it may override previous value
+                    //last_value_dateTime: null, - it may override previous value
+                    point_value_change_notify :pointValueChangeNotify
+                });
+            }
 
             if (_.difference(found, whiteIPs).length > 0) {
                 _.merge(infoX, {
@@ -460,8 +483,8 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs) {
                         logger.error('subscribe failed ,address: ' + address + ' ,res: ' + err);
                         _.merge(infoX, {
                             data_ready: true,
-                            invalid_point_address: true,
-                            last_value: ''
+                            invalid_point_address: true
+                            //,last_value: ''
                         });
                     } else {
                         logger.info('subscribe successful ,address: ' + address + ' ,res: ' + data);
@@ -469,11 +492,11 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs) {
                             invalid_point_address: false
                         }); //infoX over-write in case if the same point re-subscription. e.g :- address change
                         readWriteState === 'Write-only' ? _.merge(infoX, {
-                            data_ready: true,
-                            last_value: ''
+                            data_ready: true
+                            //,last_value: '' // last value may need to kept 
                         }) : _.merge(infoX, {
-                            data_ready: false,
-                            last_value: ""
+                            data_ready: false
+                            //,last_value: "" // last value may need to kept 
                         });
                     }
                     resolve(infoX);

@@ -2,15 +2,11 @@ const devicePoint = require('./simulator-device-point');
 const HashMap = require('hashmap');
 var pointList = new HashMap();
 
+const BIMRTInterface = require('../../bimrt-interface');
+//const BIMRTInterface = require('ivivacloud-bimrtinterface');
+
 const config = require("./iviva-settings.json")
 
-// const host = config.host,
-    //     apiKey = config.apiKey,
-    //     whiteIPs = config.whiteIPs,
-	//     interfaceID = config.InterfaceID;
-	
-//const BIMRTInterface = require('./ivivacloud-bimrtinterface/bimrt-interface');
-const BIMRTInterface = require('ivivacloud-bimrtinterface');
 const interface = new BIMRTInterface(config.InterfaceID,
 	config.host,
          config.apiKey,
