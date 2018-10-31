@@ -10,7 +10,7 @@
   "author": "selva",
   "license": "ISC",
   "dependencies": {
-    "ivivacloud-bimrtinterface": "^1.1.0",
+    "ivivacloud-bimrtinterface": "^1.1.1",
     "node-hue-api": "^2.4.4"
   }
 }
