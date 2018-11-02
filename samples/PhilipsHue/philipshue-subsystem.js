@@ -1,5 +1,7 @@
-//const BIMRTInterface = require('../../bimrt-interface');
-const BIMRTInterface = require('ivivacloud-bimrtinterface');
+var convert = require('color-convert');
+
+const BIMRTInterface = require('../../bimrt-interface');
+//const BIMRTInterface = require('ivivacloud-bimrtinterface');
 
 const config = require("./iviva-settings.json")
 
@@ -9,7 +11,8 @@ const interface = new BIMRTInterface(config.InterfaceID,
          config.whiteIPs,
 	     );
 
-var logger = new BIMRTInterface.BIMRTInterfaceLogger(); 
+var logger = new BIMRTInterface.BIMRTInterfaceLogger();
+
 const hue = require("node-hue-api"),
   HueApi = hue.HueApi,
   lightState = hue.lightState;
@@ -70,16 +73,34 @@ interface.on('setdata', (address, argument, callback) => {
       })
       .done();
   } else if (commandX === 'col') {
+    let color = convert.keyword.rgb(argument.toLowerCase());  
+    if(color!==undefined){
+      let stateX = lightState.create().on().rgb(color[0] , color[1] , color[2]);
+
+      api.setLightState(idX, stateX)
+        .then((result) => {
+          callback(null, result);
+        })
+        .done();
+    }
+    
+    /*
+    //{"lucy_model":"value-transforms-lib","model_action":"T-to-V","params":{"case_sensitive":true,"segments":[{"text":"hue;0/sat;254","value":"Red"},{"text":"hue;12750/sat;254","value":"Yellow"},{"text":"hue;25500/sat;254","value":"Green"},{"text":"hue;46920/sat;254","value":"Blue"},{"text":"hue;56100/sat;254","value":"Purple"},{"text":"hue;30000/sat;254","value":"White"},{"text":"hue;10000/sat;254","value":"Orange"}],"default_value":"N/A"}}
+
+    //{"lucy_model":"value-transforms-lib","model_action":"T-to-V","params":{"case_sensitive":true,"segments":[{"value":"hue;0/sat;254","text":"Red"},{"value":"hue;12750/sat;254","text":"Yellow"},{"value":"hue;25500/sat;254","text":"Green"},{"value":"hue;46920/sat;254","text":"Blue"},{"value":"hue;56100/sat;254","text":"Purple"},{"value":"hue;30000/sat;254","text":"White"},{"value":"hue;10000/sat;254","text":"Orange"}],"default_value":"N/A"}}
+
     let argumentSplit = argument.toString().split('/');
     let hueX = argumentSplit[0].split(';')[1],
       satX = argumentSplit[1].split(';')[1];
     let stateX = lightState.create().on().hue(hueX).sat(satX);
+
 
     api.setLightState(idX, stateX)
       .then((result) => {
         callback(null, result);
       })
       .done();
+      */
   }
   callback(null, 'success');
 });
@@ -110,15 +131,17 @@ this.updateLightValues = function (id) {
       if (lightID === id) {
         if (command === 'on') {
           point.last_value = result.state.on.toString();
-          interface.updateValue(point.address, point.last_value, (err, data) => {});
+          interface.updateValue(point.address, point.last_value);
         }
         if (command === 'bri') {
           point.last_value = result.state.bri.toString();
-          interface.updateValue(point.address, point.last_value, (err, data) => {});
+          interface.updateValue(point.address, point.last_value);
         }
         if (command === 'col') {
-          point.last_value = "";
-          interface.updateValue(point.address, point.last_value, (err, data) => {});
+          let rgb = result.state.rgb;
+          let color = convert.rgb.keyword(rgb[0],rgb[1],rgb[2]);
+          point.last_value = color;
+          interface.updateValue(point.address, point.last_value);
         }
       }
     });
