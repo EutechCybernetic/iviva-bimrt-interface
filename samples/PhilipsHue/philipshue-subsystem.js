@@ -1,7 +1,7 @@
 var convert = require('color-convert');
 
-const BIMRTInterface = require('../../bimrt-interface');
-//const BIMRTInterface = require('ivivacloud-bimrtinterface');
+//const BIMRTInterface = require('../../bimrt-interface');
+const BIMRTInterface = require('ivivacloud-bimrtinterface');
 
 const config = require("./iviva-settings.json")
 
@@ -12,6 +12,8 @@ const interface = new BIMRTInterface(config.InterfaceID,
 	     );
 
 var logger = new BIMRTInterface.BIMRTInterfaceLogger();
+
+var lights_list = [];
 
 const hue = require("node-hue-api"),
   HueApi = hue.HueApi,
@@ -33,13 +35,25 @@ interface.on('ready', (parameters) => {
     if (err) logger.error('Not connected to philips hue bridge ,err '+ err);
     else logger.info('connected to philips hue bridge ,config '+ JSON.stringify(config));
   });
+
+  api.lights(function(err, lights) {
+    if (err) throw err;
+
+    lights.lights.forEach(light => {
+      lights_list.push(light.id);
+    });
+});
 });
 
 interface.on('subscribe', (address, addressDetails, callback) => {
   let addressList = address.split(';');
   if ((addressList[0] == '') || addressList[1] == '') {
     callback('Incorrect Point Address', null);
-  } else {
+  } 
+  else if (lights_list.indexOf(addressList[0]) === -1){
+    callback('light not found', null);
+  }
+  else {   
     if (!_PointList.some(x => x.address === address)) {
       _PointList.push({
         address: address,
