@@ -47,7 +47,7 @@ function BIMRTInterfaceLogger() {
     return logger;
 }
 
-function BIMRTInterface(interfaceID, host,apiKey,whiteIPs) {
+function BIMRTInterface(interfaceID, host,apiKey,whiteIPs,webServer,webServerPort) {
     const self = this;
     EventEmitter.call(this);
 
@@ -530,7 +530,7 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs) {
         updateValueBulk(data, value, callback);
     };
 
-    const web = new BIMRTInterfaceWebHost();
+    const web = new BIMRTInterfaceWebHost(webServer,webServerPort);
     web.on('Get.AddressList', (callback) => {
         callback(null, addressList);
     });

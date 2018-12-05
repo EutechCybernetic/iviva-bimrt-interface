@@ -7,7 +7,7 @@ const express = require('express'),
     util = require('util'),
     fs = require('fs');
 
-function BIMRTInterfaceWebHost() {
+function BIMRTInterfaceWebHost(webServer, webServerPort) {
     EventEmitter.call(this);
     const self = this;
     const app = express();
@@ -134,8 +134,10 @@ function BIMRTInterfaceWebHost() {
             res.write('data: ' + JSON.stringify(data) + '\n\n');
         });
     });
-
-    app.listen(3000, () => console.log('Interface app listening on port 3000!'));
+    if(webServer){
+        app.listen(webServerPort, () => console.log(`Interface app listening on port ${webServerPort}!`));
+    }
+        
 }
 util.inherits(BIMRTInterfaceWebHost, EventEmitter);
 module.exports = BIMRTInterfaceWebHost;
