@@ -11,6 +11,6 @@
   "license": "ISC",
   "dependencies": {
     "hashmap": "^2.3.0",
-    "ivivacloud-bimrtinterface": "^1.1.1"
+    "ivivacloud-bimrtinterface": "*"
   }
 }
