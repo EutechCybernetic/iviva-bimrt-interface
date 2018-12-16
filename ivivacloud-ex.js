@@ -98,8 +98,22 @@ function MessageBus(account) {
         };
 
         client.serviceHandlers.connected = function (connection) {
+            console.log('Connected');
             callback();
         };
+        client.serviceHandlers.disconnected = function () {
+            console.log('Disconnected', arguments);
+        }
+        client.serviceHandlers.onerror = function () {
+            console.log('onerror', arguments);
+        }
+        client.serviceHandlers.reconnected = () => {
+            console.log('reconnected. subscribing to all', arguments);
+            this.subscribeAll();
+        }
+        client.serviceHandlers.reconnecting = function () {
+            console.log('reconnecting', arguments);
+        }
     };
 }
 

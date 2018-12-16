@@ -169,6 +169,18 @@ function MessageBus(account) {
         client.serviceHandlers.reconnecting = function () {
             console.log('reconnecting', arguments);
         }
+
+        client.serviceHandlers.connectionLost = function () {
+            console.log('connection lost', arguments);
+        }
+
+        client.serviceHandlers.connectFailed = function () {
+            console.log('connection failed', arguments);
+        }
+
+        client.serviceHandlers.bindingError = function () {
+            console.log('binding error', arguments);
+        }
     };
 }
 
