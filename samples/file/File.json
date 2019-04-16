@@ -1,0 +1,1 @@
+{"InterfaceTypes":[{"PointAddressFixedParameters":[],"PointAddressParameters":[],"InterfaceTypeSpecificParameters":[{"ParameterName":"path","ParameterValue":"./","ParameterHint":""}],"InterfaceTypeID":"File","PointAddressFormat":"{EquipmentID},{PointName}"}]}

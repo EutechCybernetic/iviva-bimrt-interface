@@ -1,0 +1,16 @@
+{
+  "name": "file",
+  "version": "1.0.0",
+  "description": "",
+  "main": "file-subsystem.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node file-subsystem.js"
+  },
+  "author": "selva",
+  "license": "ISC",
+  "dependencies": {
+    "lodash": "*",
+    "ivivacloud-bimrtinterface": "*"
+  }
+}

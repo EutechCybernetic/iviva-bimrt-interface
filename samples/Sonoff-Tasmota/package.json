@@ -1,0 +1,18 @@
+{
+  "name": "sonoff-tasmota",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Sonoff-Tasmota-subsystem.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node Sonoff-Tasmota-subsystem.js"
+  },
+  "author": "selva",
+  "license": "ISC",
+  "dependencies": {
+    "hashmap": "*",
+     "mqtt": "*",
+     "lodash": "*",
+    "ivivacloud-bimrtinterface": "*"
+  }
+}
