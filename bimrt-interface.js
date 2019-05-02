@@ -47,7 +47,7 @@ function BIMRTInterfaceLogger() {
     return logger;
 }
 
-function BIMRTInterface(interfaceID, host,apiKey,whiteIPs,webServer,webServerPort) {
+function BIMRTInterface(interfaceID, host, apiKey, whiteIPs, webServer, webServerPort) {
     const self = this;
     EventEmitter.call(this);
 
@@ -60,12 +60,15 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs,webServer,webServerPor
 
     var MESSAGE_BUS_CHECK_INTERVAL = 5; // in minutes
 
+    var SET_DATA_REQUEST_PROCESS_INTERVAL = 100;
+
     const _ = require('lodash'),
         async = require('async');
 
     var addressList = [],
         dataRequestList = [],
         demandPointsX = [],
+        SET_DATA_REQUEST = [],
         responseDelay = 0;
 
     this.parameters = {};
@@ -99,6 +102,17 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs,webServer,webServerPor
         }
 
     });
+
+    // const executeService_Promise = (service, parameters) => {
+    //     return new Promise((resolve, reject) => {
+    //         account.executeService(service, parameters, (err, data) => {
+    //             if (err)
+    //                 reject(err);
+    //             if (data)
+    //                 resolve(data);
+    //         });
+    //     });
+    // }
 
     const _sendMessageBusWatchDogRequest = setInterval(() => {
         account.executeService('BIMRTConfig.Interface:WatchDog', {
@@ -146,21 +160,23 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs,webServer,webServerPor
                 json_data = JSON.parse(data);
                 for (let i = 0; i < json_data.length; i++) {
                     const d = json_data[i];
-                    if(d.PointValueChangeNotify==='1'){
-                        subscribe(d.EquipmentKey, d.EquipmentID, d.PointAddress, d.EquipmentPointKey, d.PointName, d.ReadWriteState, d.EquipmentTemplateID , d.PointValueChangeNotify);        
+                    if (d.PointValueChangeNotify === '1') {
+                        subscribe(d.EquipmentKey, d.EquipmentID, d.PointAddress, d.EquipmentPointKey, d.PointName, d.ReadWriteState, d.EquipmentTemplateID, d.PointValueChangeNotify);
                     }
 
-                    if(d.PointValueChangeNotify==='0'){
-                        if(_.some(addressList,{address_key:d.address_key})){
+                    if (d.PointValueChangeNotify === '0') {
+                        if (_.some(addressList, {
+                                address_key: d.address_key
+                            })) {
                             _.chain(addressList).find({
                                 address_key: d.address_key
                             }).set('point_value_change_notify', d.PointValueChangeNotify).value();
                         }
                     }
-                        
+
                     if (_.filter(addressList, {
-                        address_key: d.EquipmentPointKey
-                    }).length > 0) {
+                            address_key: d.EquipmentPointKey
+                        }).length > 0) {
                         _.find(addressList, {
                             address_key: d.EquipmentPointKey
                         }).point_value_change_notify = d.PointValueChangeNotify;
@@ -187,6 +203,23 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs,webServer,webServerPor
         if (demandPointAddressesX.length > 0)
             this.emit('demandpoll', demandPointAddressesX);
     }, 100);
+
+    const setDataRequestProcess = setInterval(() => {
+        let SET_DATA_REQUEST_X = SET_DATA_REQUEST;
+        SET_DATA_REQUEST = [];
+
+        for (let i = 0; i < SET_DATA_REQUEST_X.length; i++) {
+            const request = SET_DATA_REQUEST_X[i];
+            let expiry = new Date(request.Expiry);
+            let now = new Date();
+
+            if (expiry >= now)
+                handleSetDataRequest2(request.EquipmentKey, request.EquipmentID, request.EquipmentTemplateID, request.PointValueChangeNotify, request.EquipmentPointKey, request.PointAddress, request.PointName, request.ReadWriteState, request.NewValue, request.ModelName, request.ModelAction, request.Cargo, request.ResponseRequired);
+            else
+                console.log('abort,',request);
+           
+        }
+    }, SET_DATA_REQUEST_PROCESS_INTERVAL);
 
     const dataRequestTimer = setInterval(() => {
         let dataRequestList2 = dataRequestList;
@@ -249,37 +282,72 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs,webServer,webServerPor
         });
     }, 100);
 
+    const handleMessageBusMessages = (msg) => {
+        try {
+            let action = msg.Action.toUpperCase();
+            switch (action) {
+                case 'DataRequest'.toUpperCase():
+                    handleDataRequest(msg.Data, msg.DataValidity, msg.EquipmentKey, msg.EquipmentID, msg.Cargo, msg.ModelName, msg.ModelAction, msg.EquipmentTemplateID, msg.PointValueChangeNotify);
+                    break;
+                case 'SetData'.toUpperCase():
+                    //handleSetDataRequest(msg.EquipmentKey, msg.EquipmentID, msg.EquipmentTemplateID , msg.PointValueChangeNotify ,msg.EquipmentPointKey, msg.PointAddress, msg.PointName, msg.ReadWriteState, msg.NewValue, msg.ModelName, msg.ModelAction, msg.Cargo, msg.ResponseRequired);
+                    handleSetDataRequest(msg);
+                    break;
+                case 'MessageBusHealthCheck'.toUpperCase():
+                    handleMessageBusHealthCheck(msg.LifeExtend);
+                    break;
+                default:
+                    logger.error('Message bus action received not compatible : ' + action);
+                    break;
+            }
+        } catch (error) {
+            logger.error('message bus subscribe error : ' + error);
+        }
+    }
+
+    /*  pull method */
+    /*
+    const pullMessages = async (channel) => {
+        let messages_count = 0;
+        do {
+            try {
+                let messages = await executeService_Promise('System.RemoveChannelMessages', {
+                    'Channel': channel,
+                    'Count': '100'
+                });
+
+                let data = JSON.parse(messages);
+                messages_count = data.length;
+
+                console.log('messages_count:', messages_count);
+                if (data.length > 0) {
+                    for (let i = 0; i < data.length; i++) {
+                        const d = data[i];
+                        //let m = JSON.parse(d);
+                        let mess = JSON.parse(d.Message);
+                        handleMessageBusMessages(mess);
+                    }
+                }
+            } catch (error) {
+                logger.error(error)
+            }
+        } while (messages_count != 0);
+    }
+    */
+
     const messageBusInit = () => {
         mb.init(function () {
             logger.info('Interface connected to ' + host);
             mb.subscribe(interfaceID, (channel, message) => {
-                logger.verbose('********message bus received message******** \n' + message);
-                try {
-                    let msg = JSON.parse(message);
-                    let action = msg.Action.toUpperCase();
-                    switch (action) {
-                        case 'DataRequest'.toUpperCase():
-                            handleDataRequest(msg.Data, msg.DataValidity, msg.EquipmentKey, msg.EquipmentID, msg.Cargo, msg.ModelName, msg.ModelAction, msg.EquipmentTemplateID ,msg.PointValueChangeNotify);
-                            break;
-                        case 'SetData'.toUpperCase():
-                            handleSetDataRequest(msg.EquipmentKey, msg.EquipmentID, msg.EquipmentTemplateID , msg.PointValueChangeNotify ,msg.EquipmentPointKey, msg.PointAddress, msg.PointName, msg.ReadWriteState, msg.NewValue, msg.ModelName, msg.ModelAction, msg.Cargo, msg.ResponseRequired);
-                            break;
-                        case 'MessageBusHealthCheck'.toUpperCase():
-                            handleMessageBusHealthCheck(msg.LifeExtend);
-                            break;
-                        default:
-                            logger.error('Message bus action received not compatible : ' + action);
-                            break;
-                    }
-                } catch (error) {
-                    logger.error('message bus subscribe error : ' + error);
-                }
+                logger.verbose(`********message bus received message from ${channel} , message : ${message}******** \n`);
+                handleMessageBusMessages(JSON.parse(message));
+                //pullMessages(channel);
             });
             messageBusStatusUpdatedTime = new Date();
         });
     };
 
-    const handleDataRequest = async (requestPointsData, dataValidity, equipmentKey, equipmentID, cargo, modelName, modelAction, equipmentTemplateID ,pointValueChangeNotify) => {
+    const handleDataRequest = async (requestPointsData, dataValidity, equipmentKey, equipmentID, cargo, modelName, modelAction, equipmentTemplateID, pointValueChangeNotify) => {
         logger.verbose('********handleDataRequest******** \n' + JSON.stringify(requestPointsData));
 
         async.forEach(requestPointsData, async (requestPoint) => {
@@ -312,10 +380,10 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs,webServer,webServerPor
                 }
 
                 if (infoX.address !== pointAddressX) { //exist but address is different , so subscribe
-                    infoX = await subscribe(equipmentKey, equipmentID, pointAddressX, equipmentPointKeyX, pointNameX, readWriteStateX, equipmentTemplateID,pointValueChangeNotify);
+                    infoX = await subscribe(equipmentKey, equipmentID, pointAddressX, equipmentPointKeyX, pointNameX, readWriteStateX, equipmentTemplateID, pointValueChangeNotify);
                 }
             } else { // not exists, so subscribe
-                infoX = await subscribe(equipmentKey, equipmentID, pointAddressX, equipmentPointKeyX, pointNameX, readWriteStateX, equipmentTemplateID,pointValueChangeNotify);
+                infoX = await subscribe(equipmentKey, equipmentID, pointAddressX, equipmentPointKeyX, pointNameX, readWriteStateX, equipmentTemplateID, pointValueChangeNotify);
             }
 
             if (infoX.read_write_state !== 'Write-only' && infoX.invalid_point_address === false) {
@@ -350,7 +418,7 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs,webServer,webServerPor
             let address = _.find(addressList, {
                 address_key: d.address_key
             });
-            if (address.last_value_dateTime !==null && value !== address.last_value && address.point_value_change_notify ==='1') {
+            if (address.last_value_dateTime !== null && value !== address.last_value && address.point_value_change_notify === '1') {
                 account.executeService('BIMRTConfig.EquipmentPoint:PointValueChanged', {
                     'address_key': address.address_key,
                     'value': value
@@ -371,13 +439,17 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs,webServer,webServerPor
         typeof callback === 'function' && callback(null, 'success');
     }
 
-    const handleSetDataRequest = async (equipmentKey, equipmentID, equipmentTemplateID ,pointValueChangeNotify ,equipmentPointKey, pointAddress, pointName, readWriteState, argument, modelName, modelAction, cargo, responseRequired) => {
-        logger.verbose('********handleSetDataRequest******** \n pointAddress: ' + pointAddress + ' ,argument: ' + argument);
+    const handleSetDataRequest = async (msg) => {
+        msg.timestamp = new Date();
+        SET_DATA_REQUEST.push(msg);
+    }
+    const handleSetDataRequest2 = async (equipmentKey, equipmentID, equipmentTemplateID, pointValueChangeNotify, equipmentPointKey, pointAddress, pointName, readWriteState, argument, modelName, modelAction, cargo, responseRequired) => {
+        logger.verbose('********handleSetDataRequest2******** \n pointAddress: ' + pointAddress + ' ,argument: ' + argument);
         let infoX = {};
         if (!_.some(addressList, {
                 address_key: equipmentPointKey.toString()
             })) {
-            infoX = await subscribe(equipmentKey, equipmentID, pointAddress, equipmentPointKey.toString(), pointName, readWriteState , equipmentTemplateID ,pointValueChangeNotify);
+            infoX = await subscribe(equipmentKey, equipmentID, pointAddress, equipmentPointKey.toString(), pointName, readWriteState, equipmentTemplateID, pointValueChangeNotify);
         } else {
             infoX = _.find(addressList, {
                 address_key: equipmentPointKey.toString()
@@ -387,9 +459,9 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs,webServer,webServerPor
         if (argument !== '' && infoX.invalid_point_address === false) {
             self.emit('setdata', infoX.address, argument, (err, data) => {
                 if (err === null) {
-                     updateValueBulk(_.filter(addressList, {
-                         address: infoX.address
-                     }), argument, (err, data) => {});
+                    updateValueBulk(_.filter(addressList, {
+                        address: infoX.address
+                    }), argument, (err, data) => {});
                 }
             });
         }
@@ -406,17 +478,17 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs,webServer,webServerPor
                     ReadWriteState: val.read_write_state
                 };
             });
-            handleDataRequest2(pointListX, infoX.equipment_key, infoX.equipment_id, cargo, modelName, modelAction , equipmentTemplateID,pointValueChangeNotify);
+            handleDataRequest2(pointListX, infoX.equipment_key, infoX.equipment_id, cargo, modelName, modelAction, equipmentTemplateID, pointValueChangeNotify);
         }
     };
 
-    const handleDataRequest2 = (data, assetKey, asset, cargo, modelName, modelAction , equipmentTemplateID,pointValueChangeNotify) => {
+    const handleDataRequest2 = (data, assetKey, asset, cargo, modelName, modelAction, equipmentTemplateID, pointValueChangeNotify) => {
         setTimeout(() => {
-            handleDataRequest(data, '0', assetKey, asset, cargo, modelName, modelAction ,equipmentTemplateID,pointValueChangeNotify);
+            handleDataRequest(data, '0', assetKey, asset, cargo, modelName, modelAction, equipmentTemplateID, pointValueChangeNotify);
         }, responseDelay);
     };
 
-    const subscribe = (equipmentKey, equipmentID, address, addressKey, pointName, readWriteState, equipmentTemplateID , pointValueChangeNotify) => {
+    const subscribe = (equipmentKey, equipmentID, address, addressKey, pointName, readWriteState, equipmentTemplateID, pointValueChangeNotify) => {
         return new Promise((resolve, reject) => {
             let re = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/;
             let found = address.match(re);
@@ -440,7 +512,7 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs,webServer,webServerPor
                     invalid_point_address: true,
                     last_value: '',
                     last_value_dateTime: null,
-                    point_value_change_notify :pointValueChangeNotify
+                    point_value_change_notify: pointValueChangeNotify
                 });
 
             } else {
@@ -459,7 +531,7 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs,webServer,webServerPor
                     invalid_point_address: true,
                     //last_value: '', -- it may override previous value
                     //last_value_dateTime: null, - it may override previous value
-                    point_value_change_notify :pointValueChangeNotify
+                    point_value_change_notify: pointValueChangeNotify
                 });
             }
 
@@ -530,7 +602,7 @@ function BIMRTInterface(interfaceID, host,apiKey,whiteIPs,webServer,webServerPor
         updateValueBulk(data, value, callback);
     };
 
-    const web = new BIMRTInterfaceWebHost(webServer,webServerPort);
+    const web = new BIMRTInterfaceWebHost(webServer, webServerPort);
     web.on('Get.AddressList', (callback) => {
         callback(null, addressList);
     });
