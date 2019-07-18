@@ -10,7 +10,7 @@
   "author": "selva",
   "license": "ISC",
   "dependencies": {
-    "lodash": "*",
-    "ivivacloud-bimrtinterface": "*"
+    "ivivacloud-bimrtinterface": "*",
+    "lodash": "^4.17.14"
   }
 }

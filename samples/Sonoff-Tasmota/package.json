@@ -11,8 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "hashmap": "*",
-    "mqtt": "*",
-    "lodash": "*",
-    "ivivacloud-bimrtinterface": "*"
+    "ivivacloud-bimrtinterface": "*",
+    "lodash": "^4.17.14",
+    "mqtt": "*"
   }
 }
