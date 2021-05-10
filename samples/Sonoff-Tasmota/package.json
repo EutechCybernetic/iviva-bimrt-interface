@@ -12,7 +12,7 @@
   "dependencies": {
     "hashmap": "*",
     "ivivacloud-bimrtinterface": "*",
-    "lodash": "^4.17.14",
+    "lodash": "^4.17.21",
     "mqtt": "*"
   }
 }
